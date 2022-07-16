@@ -13,7 +13,7 @@ import json
 
 # ~~~~~============== CONFIGURATION  ==============~~~~~
 # Replace "REPLACEME" with your team name!
-team_name = "REPLACEME"
+team_name = "HARBORSEALS"
 
 # ~~~~~============== MAIN LOOP ==============~~~~~
 
@@ -42,14 +42,25 @@ def main():
     # Send an order for BOND at a good price, but it is low enough that it is
     # unlikely it will be traded against. Maybe there is a better price to
     # pick? Also, you will need to send more orders over time.
-    exchange.send_add_message(order_id=1, symbol="BOND", dir=Dir.BUY, price=990, size=1)
-
+    order_num = 1
+    exchange.send_add_message(order_id=order_num, symbol="BOND", dir=Dir.BUY, price=990, size=1)
+    order_num += 1
     # Set up some variables to track the bid and ask price of a symbol. Right
     # now this doesn't track much information, but it's enough to get a sense
     # of the VALE market.
     vale_bid_price, vale_ask_price = None, None
     vale_last_print_time = time.time()
 
+    highestBondBuyPrice = 1000
+    lowestBondSellPrice = 1000
+
+    highestVALBZBuyPrice = 0
+    lowestVALBZSellPrice = 0
+
+    highestVALEBuyPrice = 0
+    lowestVALESellPrice = 0
+
+    bondPosition = 0
     # Here is the main loop of the program. It will continue to read and
     # process messages in a loop until a "close" message is received. You
     # should write to code handle more types of messages (and not just print
@@ -81,16 +92,15 @@ def main():
         elif message["type"] == "fill":
             print(message)
         elif message["type"] == "book":
-            if message["symbol"] == "VALE":
-
-                def best_price(side):
+            def best_price(side):
                     if message[side]:
                         return message[side][0][0]
-
+            now = time.time()
+            if message["symbol"] == "VALE":
                 vale_bid_price = best_price("buy")
                 vale_ask_price = best_price("sell")
-
-                now = time.time()
+                highestVALEBuyPrice = max(highestVALEBuyPrice, vale_bid_price)
+                lowestVALESellPrice = min(lowestVALESellPrice, vale_ask_price)
 
                 if now > vale_last_print_time + 1:
                     vale_last_print_time = now
@@ -100,6 +110,77 @@ def main():
                             "vale_ask_price": vale_ask_price,
                         }
                     )
+                if lowestVALBZSellPrice < highestVALEBuyPrice - 2:
+                    exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=10)
+                    order_num += 1
+                    exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=10)
+                    order_num += 1
+                    exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=highestVALEBuyPrice, size=10)
+                    order_num += 1
+                    print("CONVERTED VALBZ AT " + str(lowestVALBZSellPrice))
+            elif message["symbol"] == "VALBZ":
+                valbz_bid_price = best_price("buy")
+                valbz_ask_price = best_price("sell")
+                highestVALBZBuyPrice = max(highestVALBZBuyPrice, valbz_bid_price)
+                lowestVALBZSellPrice = min(lowestVALBZSellPrice, valbz_ask_price)
+
+                if now > vale_last_print_time + 1:
+                    vale_last_print_time = now
+                    print(
+                        {
+                            "vale_bid_price": vale_bid_price,
+                            "vale_ask_price": vale_ask_price,
+                        }
+                    )
+                if lowestVALBZSellPrice < highestVALEBuyPrice - 2:
+                    exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=10)
+                    order_num += 1
+                    exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=10)
+                    order_num += 1
+                    exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=highestVALEBuyPrice, size=10)
+                    order_num += 1
+                    print("CONVERTED VALBZ AT " + str(lowestVALBZSellPrice))
+            elif message["symbol"] == "BOND": 
+                bond_bid_price = best_price("buy")
+                bond_ask_price = best_price("sell")
+                highestBondBuyPrice = max(highestBondBuyPrice, bond_bid_price)
+                lowestBondSellPrice = min(lowestBondSellPrice, bond_ask_price)
+                if now > vale_last_print_time + 1:
+                    vale_last_print_time = now
+                    print(
+                        {
+                            "bond_bid_price": bond_bid_price,
+                            "bond_ask_price": bond_ask_price,
+                        }
+                    )
+                if highestBondBuyPrice > 1004: 
+                    if bondPosition > 0: 
+                        exchange.send_add_message(order_id=order_num, symbol="BOND", dir=Dir.SELL, price=highestBondBuyPrice, size=bondPosition)
+                        order_num += 1
+                        bondPosition = 0
+                        print("BOUGHT BOND AT " + str(highestBondBuyPrice))
+                elif lowestBondSellPrice < 996:
+                    if bondPosition < 95: 
+                        exchange.send_add_message(order_id=order_num, symbol="BOND", dir=Dir.BUY, price=highestBondBuyPrice, size=5)
+                        order_num += 1
+                        bondPosition += 5
+                        print("SOLD BOND AT " + str(lowestBondSellPrice))
+        elif message["type"] == "trade": 
+            print(message)
+
+
+        
+        
+
+            
+        
+
+        
+
+        
+
+        
+        
 
 
 # ~~~~~============== PROVIDED CODE ==============~~~~~
