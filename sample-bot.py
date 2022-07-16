@@ -74,6 +74,8 @@ def main():
 
     bondPosition = 0
     xlfPosition = 0
+    valePosition = 0
+    valbzPosition = 0
     # Here is the main loop of the program. It will continue to read and
     # process messages in a loop until a "close" message is received. You
     # should write to code handle more types of messages (and not just print
@@ -103,6 +105,18 @@ def main():
         elif message["type"] == "reject":
             print(message)
         elif message["type"] == "fill":
+            if message["symbol"] == "BOND":
+                if message["dir"] == Dir.BUY: bondPosition += message["size"]
+                elif message["dir"] == Dir.SELL: bondPosition -= message["size"]
+            elif message["symbol"] == "XLF":
+                if message["dir"] == Dir.BUY: xlfPosition += message["size"]
+                elif message["dir"] == Dir.SELL: xlfPosition -= message["size"]
+            elif message["symbol"] == "VALE":
+                if message["dir"] == Dir.BUY: valePosition += message["size"]
+                elif message["dir"] == Dir.SELL: valePosition -= message["size"]
+            elif message["symbol"] == "VALBZ":
+                if message["dir"] == Dir.BUY: valbzPosition += message["size"]
+                elif message["dir"] == Dir.SELL: valbzPosition -= message["size"]
             print(message)
         elif message["type"] == "book":
             def best_price(side):
@@ -124,12 +138,17 @@ def main():
                         }
                     )
                 if lowestVALBZSellPrice < highestVALEBuyPrice - 2:
-                    exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=10)
-                    order_num += 1
-                    exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=10)
-                    order_num += 1
-                    exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=highestVALEBuyPrice, size=10)
-                    order_num += 1
+                    if valbzPosition < 10 and valePosition < 5: 
+                        quantity = 10 - valbzPosition
+                        exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=quantity)
+                        order_num += 1
+                    if valbzPosition > 5:
+                        exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=valbzPosition)
+                        order_num += 1
+                        sellprice = (highestVALEBuyPrice + lowestVALBZSellPrice) / 2
+                        exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=sellprice, size=valePosition)
+                        order_num += 1
+                    
                     print("CONVERTED VALBZ AT " + str(lowestVALBZSellPrice))
             elif message["symbol"] == "VALBZ":
                 valbz_bid_price = best_price("buy")
@@ -146,12 +165,17 @@ def main():
                         }
                     )
                 if lowestVALBZSellPrice < highestVALEBuyPrice - 2:
-                    exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=10)
-                    order_num += 1
-                    exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=10)
-                    order_num += 1
-                    exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=highestVALEBuyPrice, size=10)
-                    order_num += 1
+                    if valbzPosition < 10 and valePosition < 5: 
+                        quantity = 10 - valbzPosition
+                        exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestVALBZSellPrice, size=quantity)
+                        order_num += 1
+                    if valbzPosition > 5:
+                        exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, size=valbzPosition)
+                        order_num += 1
+                        sellprice = (highestVALEBuyPrice + lowestVALBZSellPrice) / 2
+                        exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=sellprice, size=valePosition)
+                        order_num += 1
+                    
                     print("CONVERTED VALBZ AT " + str(lowestVALBZSellPrice))
             elif message["symbol"] == "BOND": 
                 bond_bid_price = best_price("buy")
@@ -170,13 +194,11 @@ def main():
                     if bondPosition > 0: 
                         exchange.send_add_message(order_id=order_num, symbol="BOND", dir=Dir.SELL, price=highestBondBuyPrice, size=bondPosition)
                         order_num += 1
-                        bondPosition = 0
                         print("BOUGHT BOND AT " + str(highestBondBuyPrice))
                 elif lowestBondSellPrice < 998:
                     if bondPosition < 95: 
                         exchange.send_add_message(order_id=order_num, symbol="BOND", dir=Dir.BUY, price=highestBondBuyPrice, size=5)
                         order_num += 1
-                        bondPosition += 5
                         print("SOLD BOND AT " + str(lowestBondSellPrice))
             elif message["type"] == "GS":
                 gs_bid_price = best_price("buy")
@@ -230,7 +252,7 @@ def main():
                             "xlf_ask_price": xlf_ask_price,
                         }
                     )
-                if lowestXLFSellPrice * 10 < 3 * highestBondBuyPrice + 2 * highestGSBuyPrice + 3 * highestMSBuyPrice + 2 * highestWFCBuyPrice - 100:
+                if lowestXLFSellPrice * 10 < 3 * highestBondBuyPrice + 2 * highestGSBuyPrice + 3 * highestMSBuyPrice + 2 * highestWFCBuyPrice - 20:
                     if xlfPosition <= 50:
                         exchange.send_add_message(order_id=order_num, symbol="XLF", dir=Dir.BUY, price=highestBondBuyPrice, size=50)
                         order_num += 1
