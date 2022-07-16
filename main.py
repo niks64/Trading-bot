@@ -7,6 +7,7 @@
 import argparse
 from collections import deque
 from enum import Enum
+from operator import pos
 import time
 import socket
 import json
@@ -88,6 +89,12 @@ def main():
         elif message["type"] == "reject":
             print(message)
         elif message["type"] == "fill":
+            if message["symbol"] == "VALE":
+                if message["dir"] == Dir.BUY: positions["VALE"] += message["size"]
+                elif message["dir"] == Dir.SELL: positions["VALE"] -= message["size"]
+            elif message["symbol"] == "VALBZ":
+                if message["dir"] == Dir.BUY: positions["VALBZ"] += message["size"]
+                elif message["dir"] == Dir.SELL: positions["VALBZ"] -= message["size"]
             print(message)
         elif message["type"] == "book":
             if message["symbol"] == "VALE":
@@ -108,10 +115,12 @@ def main():
                             "vale_ask_price": vale_ask_price,
                         }
                     )
-                if lowestSellPrices["VALE"] < highestBuyPrices["VALBZ"] - 5:
+                if lowestSellPrices["VALE"] < highestBuyPrices["VALBZ"] - 5 and positions["VALE"] <= 8:
                     exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.BUY, price=lowestSellPrices["VALE"], size=2)
                     order_num += 1
                     exchange.send_convert_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, size=2)
+                    positions["VALE"] -= 2
+                    positions["VALBZ"] += 2
                     order_num += 1
                     exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.SELL, price=highestBuyPrices["VALBZ"] - 5, size=2)
 
@@ -130,10 +139,12 @@ def main():
                             "valbz_ask_price": valbz_ask_price,
                         }
                     )
-                if lowestSellPrices["VALBZ"] < highestBuyPrices["VALE"] - 5:
+                if lowestSellPrices["VALBZ"] < highestBuyPrices["VALE"] - 5 and positions["VALBZ"] <= 8:
                     exchange.send_add_message(order_id=order_num, symbol="VALBZ", dir=Dir.BUY, price=lowestSellPrices["VALBZ"], size=2)
                     order_num += 1
                     exchange.send_convert_message(order_id=order_num, symbol="VALBZ", dir=Dir.SELL, size=2)
+                    positions["VALBZ"] -= 2
+                    positions["VALE"] += 2
                     order_num += 1
                     exchange.send_add_message(order_id=order_num, symbol="VALE", dir=Dir.SELL, price=highestBuyPrices["VALE"] - 5, size=2)
 
