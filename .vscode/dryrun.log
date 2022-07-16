@@ -1,0 +1,5 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/nikunjharlalka/Desktop/Trading-bot'
+while true; do ./sample-bot.py --test prod-like; sleep 1; done
+make: Leaving directory `/Users/nikunjharlalka/Desktop/Trading-bot'
+ 

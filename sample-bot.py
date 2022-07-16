@@ -55,10 +55,10 @@ def main():
     lowestBondSellPrice = 1000
 
     highestVALBZBuyPrice = 0
-    lowestVALBZSellPrice = 0
+    lowestVALBZSellPrice = 5000
 
     highestVALEBuyPrice = 0
-    lowestVALESellPrice = 0
+    lowestVALESellPrice = 5000
 
     bondPosition = 0
     # Here is the main loop of the program. It will continue to read and
@@ -166,6 +166,10 @@ def main():
                         bondPosition += 5
                         print("SOLD BOND AT " + str(lowestBondSellPrice))
         elif message["type"] == "trade": 
+            print(message)
+        elif message["type"] == "ack":
+            print(message)
+        elif message["type"] == "out":
             print(message)
 
 
